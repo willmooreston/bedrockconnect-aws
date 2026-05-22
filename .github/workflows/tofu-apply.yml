@@ -1,0 +1,66 @@
+name: OpenTofu Apply
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.12.0"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: tofu init
+        working-directory: tofu
+        run: tofu init
+
+      # Create ECR repo before building the image (idempotent)
+      - name: tofu apply — ECR only
+        working-directory: tofu
+        run: tofu apply -auto-approve -target=module.ecs_cluster.aws_ecr_repository.bind9
+
+      - name: Get ECR repository URL
+        id: ecr
+        working-directory: tofu
+        run: |
+          ECR_URL=$(tofu output -raw ecr_repository_url)
+          echo "url=$ECR_URL" >> $GITHUB_OUTPUT
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push bind9 image
+        env:
+          ECR_URL: ${{ steps.ecr.outputs.url }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_URL:$IMAGE_TAG -t $ECR_URL:latest ./bind9
+          docker push $ECR_URL:$IMAGE_TAG
+          docker push $ECR_URL:latest
+
+      - name: tofu apply
+        working-directory: tofu
+        env:
+          ECR_URL: ${{ steps.ecr.outputs.url }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          tofu apply -auto-approve \
+            -var="bind9_image_uri=$ECR_URL:$IMAGE_TAG"
