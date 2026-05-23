@@ -1,3 +1,5 @@
+(this is a work in progress)
+
 # BedrockConnect on AWS
 
 Deploys [BedrockConnect](https://github.com/Pugmatt/BedrockConnect) on AWS free tier using OpenTofu, ECS on EC2, and GitHub Actions. Console players (Xbox, Switch, PlayStation) can use a custom server list in Minecraft Bedrock's Featured Servers screen by pointing their network DNS at this server.
