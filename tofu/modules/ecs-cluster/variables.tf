@@ -11,3 +11,13 @@ variable "bind9_image_uri" {
 variable "bedrockconnect_image" {
   default = "pugmatt/bedrock-connect:latest"
 }
+
+variable "allowed_ipv4_cidrs" {
+  type    = list(string)
+  default = []
+}
+
+variable "allowed_ipv6_cidrs" {
+  type    = list(string)
+  default = []
+}

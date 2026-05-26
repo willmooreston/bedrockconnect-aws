@@ -3,7 +3,7 @@ terraform {
   required_providers {
     aws = {
       source  = "opentofu/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
   }
 }
@@ -20,10 +20,12 @@ module "networking" {
 module "ecs_cluster" {
   source = "./modules/ecs-cluster"
 
-  project           = var.project
-  aws_region        = var.aws_region
-  vpc_id            = module.networking.vpc_id
-  subnet_id         = module.networking.subnet_id
-  eip_allocation_id = module.networking.eip_allocation_id
-  bind9_image_uri   = var.bind9_image_uri
+  project             = var.project
+  aws_region          = var.aws_region
+  vpc_id              = module.networking.vpc_id
+  subnet_id           = module.networking.subnet_id
+  eip_allocation_id   = module.networking.eip_allocation_id
+  bind9_image_uri     = var.bind9_image_uri
+  allowed_ipv4_cidrs  = var.allowed_ipv4_cidrs
+  allowed_ipv6_cidrs  = var.allowed_ipv6_cidrs
 }

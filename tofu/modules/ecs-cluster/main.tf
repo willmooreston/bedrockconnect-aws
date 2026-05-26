@@ -11,19 +11,21 @@ resource "aws_security_group" "bedrockconnect" {
   vpc_id = var.vpc_id
 
   ingress {
-    description = "BedrockConnect Bedrock protocol"
-    from_port   = 19132
-    to_port     = 19132
-    protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "BedrockConnect Bedrock protocol"
+    from_port        = 19132
+    to_port          = 19132
+    protocol         = "udp"
+    cidr_blocks      = var.allowed_ipv4_cidrs
+    ipv6_cidr_blocks = var.allowed_ipv6_cidrs
   }
 
   ingress {
-    description = "bind9 DNS"
-    from_port   = 53
-    to_port     = 53
-    protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "bind9 DNS"
+    from_port        = 53
+    to_port          = 53
+    protocol         = "udp"
+    cidr_blocks      = var.allowed_ipv4_cidrs
+    ipv6_cidr_blocks = var.allowed_ipv6_cidrs
   }
 
   egress {
