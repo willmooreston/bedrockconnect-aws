@@ -19,7 +19,11 @@ fi
 
 # ── Resolve ECR repo URL from tofu state ──────────────────────────────────────
 echo "Fetching ECR repo URL from tofu state..."
-ECR_REPO_URL=$(cd "$TOFU_DIR" && tofu output -raw ecr_repository_url)
+ECR_REPO_URL=$(cd "$TOFU_DIR" && tofu output -raw ecr_repository_url 2>/dev/null || true)
+if [[ -z "$ECR_REPO_URL" ]]; then
+  echo "Error: ecr_repository_url output is empty — is use_bind9 = true in terraform.tfvars?" >&2
+  exit 1
+fi
 AWS_REGION=$(cd "$TOFU_DIR" && tofu output -raw aws_region 2>/dev/null || echo "us-west-2")
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 

@@ -25,6 +25,7 @@ module "ecs_cluster" {
   vpc_id              = module.networking.vpc_id
   subnet_id           = module.networking.subnet_id
   eip_allocation_id   = module.networking.eip_allocation_id
+  use_bind9           = var.use_bind9
   bind9_image_uri     = var.bind9_image_uri
   allowed_ipv4_cidrs  = var.allowed_ipv4_cidrs
   allowed_ipv6_cidrs  = var.allowed_ipv6_cidrs

@@ -6,9 +6,15 @@ variable "project" {
   default = "bedrockconnect"
 }
 
+variable "use_bind9" {
+  description = "Deploy bind9 DNS on EC2. Set to false when using a local DNS resolver (e.g. Pi with dnsmasq)."
+  type        = bool
+  default     = true
+}
+
 variable "bind9_image_uri" {
-  description = "ECR image URI for bind9, set by CI after image push"
-  default     = "public.ecr.aws/ubuntu/bind9:latest"
+  description = "ECR image URI for bind9, set by CI after image push. Ignored when use_bind9 = false."
+  default     = ""
 }
 
 variable "allowed_ipv4_cidrs" {

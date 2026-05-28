@@ -19,13 +19,16 @@ resource "aws_security_group" "bedrockconnect" {
     ipv6_cidr_blocks = var.allowed_ipv6_cidrs
   }
 
-  ingress {
-    description      = "bind9 DNS"
-    from_port        = 53
-    to_port          = 53
-    protocol         = "udp"
-    cidr_blocks      = var.allowed_ipv4_cidrs
-    ipv6_cidr_blocks = var.allowed_ipv6_cidrs
+  dynamic "ingress" {
+    for_each = var.use_bind9 ? [1] : []
+    content {
+      description      = "bind9 DNS"
+      from_port        = 53
+      to_port          = 53
+      protocol         = "udp"
+      cidr_blocks      = var.allowed_ipv4_cidrs
+      ipv6_cidr_blocks = var.allowed_ipv6_cidrs
+    }
   }
 
   egress {
@@ -133,6 +136,7 @@ resource "aws_eip_association" "bedrockconnect" {
 # ── ECR ───────────────────────────────────────────────────────────────────────
 
 resource "aws_ecr_repository" "bind9" {
+  count                = var.use_bind9 ? 1 : 0
   name                 = "${var.project}-bind9"
   image_tag_mutability = "MUTABLE"
 
@@ -140,7 +144,8 @@ resource "aws_ecr_repository" "bind9" {
 }
 
 resource "aws_ecr_lifecycle_policy" "bind9" {
-  repository = aws_ecr_repository.bind9.name
+  count      = var.use_bind9 ? 1 : 0
+  repository = aws_ecr_repository.bind9[0].name
 
   policy = jsonencode({
     rules = [{
@@ -170,6 +175,7 @@ resource "aws_cloudwatch_log_group" "bedrockconnect" {
 }
 
 resource "aws_cloudwatch_log_group" "bind9" {
+  count             = var.use_bind9 ? 1 : 0
   name              = "/ecs/${var.project}/bind9"
   retention_in_days = 7
 }
@@ -219,6 +225,7 @@ resource "aws_ecs_service" "bedrockconnect" {
 # ── ECS Task: bind9 ───────────────────────────────────────────────────────────
 
 resource "aws_ecs_task_definition" "bind9" {
+  count                 = var.use_bind9 ? 1 : 0
   family                = "${var.project}-bind9"
   network_mode          = "host"
   execution_role_arn    = aws_iam_role.ecs_task_execution.arn
@@ -238,7 +245,7 @@ resource "aws_ecs_task_definition" "bind9" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        awslogs-group         = aws_cloudwatch_log_group.bind9.name
+        awslogs-group         = aws_cloudwatch_log_group.bind9[0].name
         awslogs-region        = var.aws_region
         awslogs-stream-prefix = "ecs"
       }
@@ -247,9 +254,10 @@ resource "aws_ecs_task_definition" "bind9" {
 }
 
 resource "aws_ecs_service" "bind9" {
+  count                              = var.use_bind9 ? 1 : 0
   name                               = "bind9"
   cluster                            = aws_ecs_cluster.main.id
-  task_definition                    = aws_ecs_task_definition.bind9.arn
+  task_definition                    = aws_ecs_task_definition.bind9[0].arn
   desired_count                      = 1
   availability_zone_rebalancing      = "DISABLED"
   deployment_minimum_healthy_percent = 0
