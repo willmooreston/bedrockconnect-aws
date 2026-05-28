@@ -123,3 +123,57 @@ To re-enable, rename the workflow files to `.yml` and add `AWS_ROLE_ARN` (from b
 | Lifeboat | `mco.lbsg.net` |
 | Galaxite | `play.galaxite.net` |
 | Enchanted Dragons | `play.enchanted.gg` |
+| BlossomCraft | `play.blossomcraft.org` |
+
+## Troubleshooting
+
+### Featured servers list looks unchanged
+
+The Switch/console is still getting real DNS answers instead of being redirected.
+
+**Check your home IP hasn't changed.** Dynamic IPs are the most common cause — the security group allowlist in `terraform.tfvars` will be stale.
+
+```bash
+curl -4 ifconfig.me   # current IPv4
+curl -6 ifconfig.me   # current IPv6
+```
+
+Update `terraform.tfvars` and `tofu apply` if either changed.
+
+**Verify bind9 is working on the EC2 instance:**
+
+```bash
+# SSH in, then:
+dig @127.0.0.1 geo.hivebedrock.network
+# Should return 44.x.x.x (your Elastic IP), not a CNAME to hivebedrock.us
+```
+
+If that returns the correct IP, bind9 is fine and the problem is between your home network and EC2.
+
+### Xfinity (Comcast) transparent DNS proxy
+
+Xfinity gateways intercept **all outbound port 53 traffic** at the firmware level — regardless of destination IP, and regardless of whether "Advanced Security" is enabled in the xFi app. DNS queries to your EC2 instance never leave the home network; Xfinity answers them from its own resolver and spoofs the source address to make responses look authentic.
+
+You can confirm this with `tcpdump -n -i any udp port 53` on the EC2 instance while running `dig @<elastic-ip> geo.hivebedrock.network` from home — no packets will arrive.
+
+**Options:**
+
+1. **Bridge mode** — put the Xfinity gateway into bridge mode (`http://10.0.0.1` → Gateway → At a Glance → Enable Bridge Mode) and use a separate router. Any standard consumer router will work and won't have this interception behavior.
+
+2. **Raspberry Pi with dnsmasq** — run a local DNS resolver on the LAN. The Switch queries the Pi directly (LAN traffic, never intercepted), and the Pi returns the EC2 IP for Minecraft domains. The EC2 bind9 service is not needed in this setup — only BedrockConnect on port 19132 is required.
+
+   ```bash
+   sudo apt install dnsmasq
+   ```
+
+   `/etc/dnsmasq.d/bedrockconnect.conf`:
+   ```
+   address=/hivebedrock.network/<elastic-ip>
+   address=/inpvp.net/<elastic-ip>
+   address=/lbsg.net/<elastic-ip>
+   address=/galaxite.net/<elastic-ip>
+   address=/enchanted.gg/<elastic-ip>
+   address=/blossomcraft.org/<elastic-ip>
+   ```
+
+   Point the Switch's DNS to the Pi's local IP. The `address=` directive matches the domain and all subdomains automatically.

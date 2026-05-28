@@ -119,6 +119,7 @@ resource "aws_instance" "bedrockconnect" {
   user_data = <<-EOF
     #!/bin/bash
     echo ECS_CLUSTER=${aws_ecs_cluster.main.name} >> /etc/ecs/ecs.config
+    yum install -y bind-utils
   EOF
 
   tags = { Name = "${var.project}-ec2" }
@@ -204,10 +205,13 @@ resource "aws_ecs_task_definition" "bedrockconnect" {
 }
 
 resource "aws_ecs_service" "bedrockconnect" {
-  name            = "bedrockconnect"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.bedrockconnect.arn
-  desired_count   = 1
+  name                               = "bedrockconnect"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.bedrockconnect.arn
+  desired_count                      = 1
+  availability_zone_rebalancing      = "DISABLED"
+  deployment_minimum_healthy_percent = 0
+  deployment_maximum_percent         = 100
 
   depends_on = [aws_eip_association.bedrockconnect]
 }
@@ -243,10 +247,15 @@ resource "aws_ecs_task_definition" "bind9" {
 }
 
 resource "aws_ecs_service" "bind9" {
-  name            = "bind9"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.bind9.arn
-  desired_count   = 1
+  name                               = "bind9"
+  cluster                            = aws_ecs_cluster.main.id
+  task_definition                    = aws_ecs_task_definition.bind9.arn
+  desired_count                      = 1
+  availability_zone_rebalancing      = "DISABLED"
+  deployment_minimum_healthy_percent = 0
+  deployment_maximum_percent         = 100
 
+  # host networking means two tasks can't hold port 53 simultaneously;
+  # stop the old task before starting the new one
   depends_on = [aws_eip_association.bedrockconnect]
 }

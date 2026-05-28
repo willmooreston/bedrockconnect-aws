@@ -16,6 +16,7 @@ DOMAINS=(
   "lbsg.net mco.lbsg.net"
   "galaxite.net play.galaxite.net"
   "enchanted.gg play.enchanted.gg"
+  "blossomcraft.org play.blossomcraft.org"
 )
 
 mkdir -p /var/cache/bind
